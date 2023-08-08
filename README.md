@@ -25,31 +25,35 @@ The Smoke Generator Project provides a simple yet effective solution for creatin
 
 ## Project Structure
 
-🔧 create_python_env.sh
-📄 python_dependencies.txt
-📁 smoke_generator_V1: python env for library management
-📝 README.md: Detailed project documentation and information.
-📁 smoke_dataset_V1: The main folder for version 1 of the smoke dataset.
-  📁 smoke_generator_V1: The main folder for version 1 of the smoke generation code.
-    📁 background_images: Contains background images for smoke composition.
-    📁 blender_file: Holds Blender-related files and scripts for smoke simulation.
-      🐍 blender_main.py: Orchestrates smoke simulation generation within Blender.
-      🐍 blender_scene_utils.py: Contains utility methods for managing scene operations.
-      💻 random_smoke_plume.blend: Template/base Blender file for smoke simulations.
-    📁 blender_images: Contains numbered folders for different smoke plume simulations.
-      📁 smokeplume_0
-            |
-      📁 smokeplume_20
-    📁 scripts: Contains various scripts related to the project.
-      🐍 application_interface.py: Manages user interaction and UI.
-      🐍 display_project_architecture.py: Visualizes the project structure.
-      🐍 image_composer.py: Composes or processes smoke-related images.
-      🐍 image_harmonization.py: Harmonizes image qualities.
-      🐍 install_harmonization.py: Manages image harmonization process.
-      🐍 main.py: Main entry point script for running the project.
-(Future project deployment):
-📁 smoke_dataset_V2: Placeholder for version 2 of the smoke dataset.
-📁 smoke_generator_V2: Placeholder for version 2 of the smoke generation code.
+## Project Structure
+
+- 📝 README.md: Detailed project documentation and information.
+
+- **smoke_generator_env**: python env for library management
+- 🔧 create_python_env.sh
+- 📄 python_dependencies.txt
+
+- **smoke_dataset_V1**: The main folder for version 1 of the smoke dataset
+- **smoke_generator_V1**: The main folder for version 1 of the smoke generation code
+  - **background_images**: Contains background images for smoke composition
+  - **blender_file**: Holds Blender-related files and scripts for smoke simulation
+    - 🐍 blender_main.py: Orchestrates smoke simulation generation within Blender
+    - 🐍 blender_scene_utils.py: Contains utility methods for managing scene operations
+    - 💻 random_smoke_plume.blend: Template/base Blender file for smoke simulations
+  - **blender_images**: Contains numbered folders for different smoke plume simulations
+    - 📁 smokeplume_(0...20)
+  - **scripts**: Contains various scripts related to the project
+    - 🐍 application_interface.py: Manages user interaction and UI
+    - 🐍 display_project_architecture.py: Visualizes the project structure
+    - 🐍 image_composer.py: Composes or processes smoke-related images
+    - 🐍 image_harmonization.py: Harmonizes image qualities
+    - 🐍 install_harmonization.py: Manages image harmonization process
+    - 🐍 main.py: Main entry point script for running the project
+- **(Future project deployment):**
+  - 📁 smoke_dataset_V2: Placeholder for version 2 of the smoke dataset
+  - 📁 smoke_generator_V2: Placeholder for version 2 of the smoke generation code
+
+
 
 
 
