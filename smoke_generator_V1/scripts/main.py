@@ -41,9 +41,10 @@ def main():
 
     # Composite smoke with rotation
     composite_image = composite_smoke_with_rotation(background_path, smoke_image_path, max_rotation_angle=30, brightness_range=(0.5, 1.5))
-    
     if composite_image:
         composite_image.show()
+    
+    
 
 if __name__ == "__main__":
     main()
