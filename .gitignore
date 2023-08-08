@@ -1,3 +1,19 @@
+#Custom gitignore
+
+#background images for composition
+smoke_generator_V1/background_images/
+#smoke images for composition
+smoke_generator_V1/blender_images/
+#smoke simulation using blender software
+smoke_generator_V1/blender_scripts/
+#Final dataset
+smoke_generator_V1/smoke_dataset_V1/
+## Python environment
+smoke_generator_V1/smoke_generator_env
+## Harmonization scripts and model weights
+smoke_generator_V1/scripts/harmonization_scripts
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
