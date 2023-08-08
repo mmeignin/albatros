@@ -22,7 +22,7 @@ else
 fi
 
 # Install required packages
-echo "Installing required packages from requirements.txt"
-pip install -r requirements.txt
+echo "Installing required packages from python_dependencies.txt"
+pip install -r python_dependencies.txt
 
 echo "Python environment setup completed."
