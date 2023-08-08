@@ -2,6 +2,9 @@ from PIL import Image, ImageEnhance, ImageOps
 import os
 import random
 import csv
+from image_harmonization import harmonize_smoke_with_background
+
+
 
 ##-----------------------------------------------------------------------------------------
 ##                        methods for Image Composition
@@ -76,13 +79,12 @@ def create_binary_mask(smoke_image, threshold_value=128):
     """
     # Create a mask image with the smoke in white and the rest in black
     mask_image = smoke_image.convert('L')
-
     # Apply thresholding to get a binary mask
     binary_mask = mask_image.point(lambda x: 255 if x > threshold_value else 0, '1')
 
     return binary_mask
 
-def calculate_random_position(background_width, background_height, smoke_width, smoke_height):
+def calculate_random_position(background_width, background_height, smoke_width, smoke_height, background_image):
     """
     Calculates a random position to paste the smoke image within the background.
 
@@ -91,33 +93,56 @@ def calculate_random_position(background_width, background_height, smoke_width, 
         background_height (int): Height of the background image.
         smoke_width (int): Width of the smoke image.
         smoke_height (int): Height of the smoke image.
+        background_image (Image): The background image as a PIL Image object.
 
     Returns:
         tuple: A tuple containing the random x and y offsets for pasting the smoke image.
     """
-    # Calculate the maximum allowed x and y offsets to ensure the smoke image is fully contained
     max_x_offset = max(0, background_width - smoke_width)
     max_y_offset = max(0, background_height - smoke_height)
 
-    # Calculate the random position to paste the smoke image within the background
-    x_offset = random.randint(0, max_x_offset)
-    y_offset = random.randint(0, max_y_offset)
-    return x_offset, y_offset
+    for _ in range(100):  # Try a maximum of 100 times
+        x_offset = random.randint(0, max_x_offset)
+        y_offset = random.randint(0, max_y_offset)
 
-def randomly_select_subfolder(subfolders, weights):
+        is_non_sky_x = all([is_non_sky_pixel(background_image.getpixel((x_offset + i, y_offset))) for i in range(smoke_width)])
+        is_non_sky_y = all([is_non_sky_pixel(background_image.getpixel((x_offset, y_offset + i))) for i in range(smoke_height)])
+
+        if  is_non_sky_x and is_non_sky_y:
+            return x_offset, y_offset
+    
+    # Return a fallback position if no valid position is found
+    return max_x_offset, max_y_offset
+
+def is_non_sky_pixel(pixel):
     """
-    Randomly selects a subfolder from a list of subfolders based on the given weights.
+    Checks if the given pixel is not part of the sky region based on certain color thresholds.
 
     Args:
-        subfolders (list): List of subfolder names.
-        weights (list): List of weights for each subfolder.
+        pixel (tuple): The RGB values of the pixel.
 
     Returns:
-        str: The selected subfolder name.
+        bool: True if the pixel is not part of the sky region, False otherwise.
     """
-    return random.choices(subfolders, weights=weights)[0]
+    # Define thresholds for blue and whitish colors
+    blue_threshold = 100
+    whitish_threshold = 170
 
-def composite_smoke_with_rotation(background_path, smoke_image_path, max_rotation_angle, brightness_range):
+    # Check if the pixel is not predominantly blue or whitish
+    return not ((pixel[2] > blue_threshold and pixel[2] - pixel[1] > 15 and pixel[2] - pixel[0] > 15) or
+                (pixel[0] > whitish_threshold and pixel[1] > whitish_threshold and pixel[2] > whitish_threshold))
+
+
+def add_white_mask(image, alpha):
+    # Create a white transparent overlay with the same size as the image
+    overlay = Image.new('RGBA', image.size, color=(255, 255, 255, int(255 * alpha)))
+    image=image.convert('RGBA')
+    # Blend the original image with the white overlay using the blend() function
+    blended_image = Image.blend(image, overlay, alpha)
+
+    return blended_image
+
+def composite_smoke_with_rotation(base_folder,background_path, smoke_image_path, max_rotation_angle, brightness_range):
     """
     Composites a smoke image onto a random background image with rotation and brightness adjustment.
 
@@ -146,7 +171,7 @@ def composite_smoke_with_rotation(background_path, smoke_image_path, max_rotatio
             max_rescaling_size = min(background_width / bounding_boxes_image.width, background_height / bounding_boxes_image.height)
 
             # Randomly select a rescaling size within a certain range
-            smoke_rescaling_size = random.uniform(0.4, 1) * max_rescaling_size
+            smoke_rescaling_size = random.uniform(0.2, 0.4) * max_rescaling_size
 
             # Resize the bounding boxed smoke image while maintaining the aspect ratio
             new_width = int(bounding_boxes_image.width * smoke_rescaling_size)
@@ -163,17 +188,30 @@ def composite_smoke_with_rotation(background_path, smoke_image_path, max_rotatio
             transparent_background = Image.new('RGBA', (background_width, background_height), (0, 0, 0, 0))
 
             # Calculate the position to paste the smoke image at the center of the background
-            x_offset = (background_width - brightness_adjusted_smoke.width) // 2
-            y_offset = (background_height - brightness_adjusted_smoke.height) // 2
+            # Calculate the maximum allowed x and y offsets to ensure the smoke image is fully contained
+            x_offset,y_offset = calculate_random_position(background_width,background_height,new_width,new_height,background)
 
+            
             # Paste the brightness-adjusted smoke image onto the transparent background
             transparent_background.paste(brightness_adjusted_smoke, (x_offset, y_offset), mask=brightness_adjusted_smoke)
-
+            # Create a Binary Mask
+            binary_mask = create_binary_mask(transparent_background, threshold_value=10)
             # Composite the smoke onto the background
             composite = Image.alpha_composite(background, transparent_background)
-
-            # Return the composite image
-            return composite
+            alpha = random.uniform(0.15, 0.25)
+            model_weight_path = r'scripts\harmonization_scripts\model_path\rascv2.pth.tar'
+            weight_path = os.path.join(base_folder,model_weight_path)
+            if os.path.exists(weight_path):
+                harmonized =  harmonize_smoke_with_background(composite,binary_mask,weight_path)
+                harmonized = add_white_mask(harmonized,alpha)
+                composite = add_white_mask(composite,alpha)
+                # Add white mask to composite image to attenuate contrast
+                return harmonized,composite,binary_mask
+            # Return the composite image and the binary mask
+            else :
+                print("No model weight downloaded")
+                composite = add_white_mask(composite,alpha)
+                return '__',composite,binary_mask
         else:
             print("No bounding boxes found in the smoke image.")
             return None
@@ -181,5 +219,50 @@ def composite_smoke_with_rotation(background_path, smoke_image_path, max_rotatio
         print("Smoke image not found.")
         return None
 
+##-----------------------------------------------------------------------------------------
+##                    methods for Selecting Background and Smoke Images
+##-----------------------------------------------------------------------------------------
 
-# You can add more functions here as needed
+def select_background_image(base_folder):
+    """
+    Selects a random background image from the 'background_images' folder.
+    Args:
+        base_folder (str): The base folder of the project.
+    Returns:
+        str: The path to the selected background image, or None if no images are found.
+    """
+    # Construct the path to the background images folder
+    background_folder = os.path.join(base_folder, "background_images")
+    # Get a list of all background image files with allowed extensions
+    background_images = [f for f in os.listdir(background_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    if background_images:
+        # Randomly select a background image from the list
+        background_path = os.path.join(background_folder, random.choice(background_images))
+        return background_path
+    else:
+        print("No background images found.")
+        return None
+
+def select_smoke_image(base_folder):
+    """
+    Selects a random smoke image from the 'blender_images' subfolders.
+    Args: -- base_folder (str): The base folder of the project.
+    Returns -- (str) The path to the selected smoke image, or None if no images are found.
+    """
+    # Construct the path to the smoke images folder
+    smoke_folder = os.path.join(base_folder, "blender_images")
+    # Get a list of all subfolders with smoke plume images
+    smoke_subfolders = [f for f in os.listdir(smoke_folder) if f.lower().startswith('smokeplume_')]
+    if smoke_subfolders:
+        # Randomly select a subfolder for smoke images
+        random_subfolder = random.choice(smoke_subfolders)
+        smoke_images_folder = os.path.join(smoke_folder, random_subfolder)
+        # Get a list of all smoke image files with allowed extensions
+        smoke_images = [f for f in os.listdir(smoke_images_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        if smoke_images:
+            # Randomly select a smoke image from the list
+            smoke_image_path = os.path.join(smoke_images_folder, random.choice(smoke_images))
+            return smoke_image_path
+    print("No smoke images found.")
+    return None
+

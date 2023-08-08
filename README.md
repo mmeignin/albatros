@@ -36,7 +36,7 @@ The Smoke Generator Project provides a simple yet effective solution for creatin
 - **smoke_dataset_V1**: The main folder for version 1 of the smoke dataset
 - **smoke_generator_V1**: The main folder for version 1 of the smoke generation code
   - **background_images**: Contains background images for smoke composition
-  - **blender_file**: Holds Blender-related files and scripts for smoke simulation
+  - **blender_files**: Holds Blender-related files and scripts for smoke simulation
     - 🐍 blender_main.py: Orchestrates smoke simulation generation within Blender
     - 🐍 blender_scene_utils.py: Contains utility methods for managing scene operations
     - 💻 random_smoke_plume.blend: Template/base Blender file for smoke simulations
