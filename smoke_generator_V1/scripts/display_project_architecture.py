@@ -1,5 +1,10 @@
 import os
 
+##-----------------------------------------------------------------------------------------
+##                        Script to display entire project architecture
+##-----------------------------------------------------------------------------------------
+
+# Function to get an emoji based on file extension
 def get_file_emoji(file_extension):
     emoji_dict = {
         '.py': '🐍',
@@ -11,14 +16,17 @@ def get_file_emoji(file_extension):
     }
     return emoji_dict.get(file_extension, '📁')  # Default to folder emoji
 
+# Check if an item (file) is relevant based on its extension
 def is_relevant_item(item_name):
     included_extensions = ['.py', '.blend', '.md', '.txt', '.sh']
     return any(item_name.endswith(ext) for ext in included_extensions)
 
+# Check if a folder is relevant for printing
 def is_relevant_folder(folder_name):
     excluded_folders = ['smoke_generator_env', '.git', '__pycache__', 'harmonization_scripts']
     return folder_name not in excluded_folders
 
+# Recursively print project architecture
 def print_project_architecture(base_folder, indent=0):
     if not os.path.exists(base_folder):
         print(f"Folder '{base_folder}' not found.")

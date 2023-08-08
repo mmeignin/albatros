@@ -4,8 +4,6 @@ import random
 import csv
 from image_harmonization import harmonize_smoke_with_background
 
-
-
 ##-----------------------------------------------------------------------------------------
 ##                        methods for Image Composition
 ##-----------------------------------------------------------------------------------------
