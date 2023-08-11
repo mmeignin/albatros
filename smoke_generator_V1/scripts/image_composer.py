@@ -2,7 +2,7 @@ from PIL import Image, ImageEnhance, ImageOps
 import os
 import random
 import csv
-from image_harmonization import harmonize_smoke_with_background
+
 
 ##-----------------------------------------------------------------------------------------
 ##                        methods for Image Composition
@@ -130,7 +130,6 @@ def is_non_sky_pixel(pixel):
     return not ((pixel[2] > blue_threshold and pixel[2] - pixel[1] > 15 and pixel[2] - pixel[0] > 15) or
                 (pixel[0] > whitish_threshold and pixel[1] > whitish_threshold and pixel[2] > whitish_threshold))
 
-
 def add_white_mask(image, alpha):
     # Create a white transparent overlay with the same size as the image
     overlay = Image.new('RGBA', image.size, color=(255, 255, 255, int(255 * alpha)))
@@ -140,16 +139,13 @@ def add_white_mask(image, alpha):
 
     return blended_image
 
-def composite_smoke_with_rotation(base_folder,background_path, smoke_image_path, max_rotation_angle, brightness_range):
+def composite_smoke(background_path, smoke_image_path,white_mask = (0.15,0.25),binary_mask_treshold = 10 ):
     """
     Composites a smoke image onto a random background image with rotation and brightness adjustment.
 
     Args:
         background_path (str): Path to the background image.
         smoke_image_path (str): Path to the smoke image.
-        max_rotation_angle (float): Maximum rotation angle in degrees for the smoke image.
-        brightness_range (tuple): Range of brightness adjustments as a tuple (min_brightness, max_brightness).
-
     Returns:
         Image: The composite image as a PIL Image object, or None if the smoke image is not found.
     """
@@ -176,12 +172,6 @@ def composite_smoke_with_rotation(base_folder,background_path, smoke_image_path,
             new_height = int(bounding_boxes_image.height * smoke_rescaling_size)
             smoke_image = bounding_boxes_image.resize((new_width, new_height), Image.LANCZOS)
 
-            # Randomly rotate the smoke image
-            rotated_smoke = rotate_image(smoke_image, max_rotation_angle)
-
-            # Randomly adjust the brightness of the smoke image
-            brightness_adjusted_smoke = adjust_brightness(rotated_smoke, brightness_range)
-
             # Create a transparent background for the smoke
             transparent_background = Image.new('RGBA', (background_width, background_height), (0, 0, 0, 0))
 
@@ -189,27 +179,15 @@ def composite_smoke_with_rotation(base_folder,background_path, smoke_image_path,
             # Calculate the maximum allowed x and y offsets to ensure the smoke image is fully contained
             x_offset,y_offset = calculate_random_position(background_width,background_height,new_width,new_height,background)
 
-            
             # Paste the brightness-adjusted smoke image onto the transparent background
-            transparent_background.paste(brightness_adjusted_smoke, (x_offset, y_offset), mask=brightness_adjusted_smoke)
+            transparent_background.paste(smoke_image, (x_offset, y_offset), mask=smoke_image)
             # Create a Binary Mask
-            binary_mask = create_binary_mask(transparent_background, threshold_value=10)
+            binary_mask = create_binary_mask(transparent_background, threshold_value=binary_mask_treshold)
             # Composite the smoke onto the background
             composite = Image.alpha_composite(background, transparent_background)
-            alpha = random.uniform(0.15, 0.25)
-            model_weight_path = r'scripts\harmonization_scripts\model_path\rascv2.pth.tar'
-            weight_path = os.path.join(base_folder,model_weight_path)
-            if os.path.exists(weight_path):
-                harmonized =  harmonize_smoke_with_background(composite,binary_mask,weight_path)
-                harmonized = add_white_mask(harmonized,alpha)
-                composite = add_white_mask(composite,alpha)
-                # Add white mask to composite image to attenuate contrast
-                return harmonized,composite,binary_mask
-            # Return the composite image and the binary mask
-            else :
-                print("No model weight downloaded")
-                composite = add_white_mask(composite,alpha)
-                return '__',composite,binary_mask
+            alpha = random.uniform(white_mask[0],white_mask[1])
+            composite = add_white_mask(composite,alpha)
+            return composite,binary_mask
         else:
             print("No bounding boxes found in the smoke image.")
             return None

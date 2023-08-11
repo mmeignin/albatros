@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 import torchvision.transforms as transforms
 import harmonization_scripts.models as models 
-
+from image_composer import add_white_mask
 ##-----------------------------------------------------------------------------------------
 ##                        Methods for Image Harmonization
 ##-----------------------------------------------------------------------------------------
@@ -58,5 +58,5 @@ def harmonize_smoke_with_background(image, mask, model_path):
 
     # Convert the numpy array back to an RGB image using PIL
     output_image = Image.fromarray(output_np.transpose(1, 2, 0))
-
+    #output_image = add_white_mask(output_image,0.17)
     return output_image

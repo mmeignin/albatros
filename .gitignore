@@ -12,8 +12,11 @@ smoke_generator_V1/smoke_dataset_V1/
 smoke_generator_V1/smoke_generator_env
 ## Harmonization scripts and model weights
 smoke_generator_V1/scripts/harmonization_scripts
-smoke_generator_V1/blender_file/random_smoke_plume.blend
+smoke_generator_V1/blender_file/random_smokeplume.blend
+smoke_generator_V1/blender_file/random_smokeplume/
 *.pth
+*.bin
+*.blend1
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -4,6 +4,10 @@ import os
 import shutil
 import math
 
+##-----------------------------------------------------------------------------------------
+##                        Blender Scene class for Smoke Simulation
+##-----------------------------------------------------------------------------------------
+
 class Scene:
     def __init__(self):
         self.objects = []
@@ -16,8 +20,8 @@ class Scene:
         bpy.ops.mesh.primitive_cube_add(location=location)
         cube = bpy.context.object
         cube.scale = (0.5, 0.5, 0.5) 
-        cube.modifier_add(type='SUBSURF')
-        cube.modifiers["Subdivision"].levels = 2
+        subsurf_modifier = cube.modifiers.new(name="Subdivision", type='SUBSURF')
+        subsurf_modifier.levels = 2
 
         self.objects.append(cube)
 
@@ -31,8 +35,8 @@ class Scene:
         light.rotation_euler = [ math.radians(angle) for angle in rotation ]
         light.data.energy = 1000
         light.data.shape = 'RECTANGLE'
-        light.data.size = 3
-        light.data.size_y = 3 
+        light.data.size = 1
+        light.data.size_y = 1 
         self.objects.append(light)
 
     def create_camera(self, location,rotation,scale):
@@ -94,6 +98,21 @@ class Scene:
         smoke_domain = bpy.context.object
         self.objects.append(smoke_domain)
 
+    def clear_cache(self,cache_directory):
+        """
+        Clear the cache by deleting cache files and directories.
+        """
+        blend_file_directory = os.path.dirname(bpy.data.filepath)
+        cache_directory_norm = cache_directory.replace("//", "")
+        absolute_cache_directory = os.path.join(blend_file_directory,cache_directory_norm).replace("\\","/")
+        print(absolute_cache_directory,os.path.exists(absolute_cache_directory))
+        if os.path.exists(absolute_cache_directory):
+            try:
+                shutil.rmtree(absolute_cache_directory)
+                print(f"Cache directory '{absolute_cache_directory}' deleted.")
+            except Exception as e:
+                print(f"Failed to delete cache directory: {e}")
+
     def modify_smoke_domain_properties(self, smoke_domain, scale, cache_directory):
         """
         Modify smoke properties for better-looking smoke. 
@@ -120,14 +139,18 @@ class Scene:
                 smoke_domain_fluid.domain_settings.vorticity = 0.2
                 smoke_domain_fluid.domain_settings.additional_res = 2 
                 smoke_domain_fluid.domain_settings.use_noise = True
+                smoke_domain_fluid.domain_settings.noise_scale = 2
+                smoke_domain_fluid.domain_settings.noise_strength = 0.4
+                smoke_domain_fluid.domain_settings.noise_pos_scale = 8
+                smoke_domain_fluid.domain_settings.noise_time_anim = 1
                 smoke_domain_fluid.domain_settings.openvdb_cache_compress_type = 'ZIP'
                 smoke_domain_fluid.domain_settings.openvdb_data_depth = '32'
-                smoke_domain_fluid.domain_settings.cache_frame_end = 45
+                smoke_domain_fluid.domain_settings.cache_frame_end = 50
                 smoke_domain_fluid.domain_settings.cache_type = "ALL"
                 smoke_domain_fluid.domain_settings.use_collision_border_bottom = True
-                relative_cache_directory = cache_directory.lstrip('/').lstrip('\\')
-                if os.path.exists(relative_cache_directory):
-                    shutil.rmtree(relative_cache_directory)
+                # Change cache directory
+                smoke_domain_fluid.domain_settings.cache_directory = cache_directory
+                self.clear_cache(cache_directory)
                 smoke_domain_fluid.domain_settings.cache_directory = cache_directory
         else:
             print("The provided object is not a smoke domain.")
@@ -157,13 +180,14 @@ class Scene:
                 smoke_effector_fluid.flow_settings.velocity_factor = 0
                 smoke_effector_fluid.flow_settings.velocity_coord[0] = random.choice([-1, 1]) * random.uniform(min_speed, max_speed)
                 smoke_effector_fluid.flow_settings.velocity_coord[2] = random.uniform(min_speed, max_speed)
+                print(f"Initial Velocity {smoke_effector_fluid.flow_settings.velocity_coord[0],smoke_effector_fluid.flow_settings.velocity_coord[1],smoke_effector_fluid.flow_settings.velocity_coord[2]}")
                 # Animate Density over time
                 smoke_effector_fluid.flow_settings.density = 0.0
                 smoke_effector_fluid.flow_settings.keyframe_insert(data_path="density", frame=0)
                 smoke_effector_fluid.flow_settings.keyframe_insert(data_path="density", frame=14)
                 smoke_effector_fluid.flow_settings.density = 1
                 smoke_effector_fluid.flow_settings.keyframe_insert(data_path="density", frame=15)
-                smoke_effector_fluid.flow_settings.keyframe_insert(data_path="density", frame=45)
+                smoke_effector_fluid.flow_settings.keyframe_insert(data_path="density", frame=40)
         else:
             print("The provided object is not a smoke object.")
 
@@ -200,6 +224,10 @@ class Scene:
         nodes = material.node_tree.nodes
         # Find the node responsible for controlling smoke density (principled volume node)
         principled_volume = nodes[1]
+        # Change the material color of the smoke
+        color_intensity = random.uniform(0.5,1)
+        principled_volume.inputs[0].default_value = (color_intensity, color_intensity, color_intensity, 1)
+
         # Create attribute and math nodes to control density
         attribute_node = nodes.new(type='ShaderNodeAttribute')
         attribute_node.attribute_name = "Density"
@@ -215,6 +243,7 @@ class Scene:
         material.node_tree.links.new(attribute_node.outputs['Fac'], math_node_1.inputs[0])
         material.node_tree.links.new(math_node_1.outputs['Value'], math_node_2.inputs['Value'])
         material.node_tree.links.new(math_node_2.outputs['Value'], principled_volume.inputs['Density'])
+
 
     def modify_render_engine(self):
         """
@@ -245,6 +274,7 @@ class Scene:
         # Set the starting and ending frame for the smoke animation
         bpy.context.scene.frame_start = 14
         bpy.context.scene.frame_end = 50
+        
     def delete_all_objects(self):
         """
         Delete all objects from the Blender scene.
@@ -253,7 +283,8 @@ class Scene:
         for creating new objects or running simulations
         """
         bpy.ops.object.select_all(action='DESELECT')
-        bpy.ops.object.delete(use_global=False)
+        bpy.ops.object.select_all(action='SELECT')
+        bpy.ops.object.delete()
 
     def clear_all_actions(self):
         """
