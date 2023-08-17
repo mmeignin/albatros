@@ -22,6 +22,8 @@ class ImageApp:
         self.mask_output = os.path.join(self.output_folder, 'masks/')
 
         self.new_image_index = 0
+        self.initialize_new_image_index()  # Initialize new_image_index based on existing images
+
 
         self.image_frame = tk.Frame(self.root)
         self.image_frame.pack()
@@ -54,10 +56,8 @@ class ImageApp:
         self.background_path = select_background_image(self.base_folder)
         self.smoke_image_path = select_smoke_image(self.base_folder)
         self.image1, self.mask = composite_smoke(self.background_path, self.smoke_image_path)
-
-        image1 = self.image1.resize((self.image_width, self.image_height), Image.ANTIALIAS)
+        image1 = self.image1.resize((self.image_width, self.image_height), Image.LANCZOS)
         self.img1 = ImageTk.PhotoImage(image=image1)
-
         if self.img1:
             if hasattr(self, 'label1'):
                 self.label1.destroy()
@@ -70,7 +70,7 @@ class ImageApp:
             return
         
         self.harmonized_image = harmonize_smoke_with_background(self.image1, self.mask, model_path)
-        harmonized_image_display = self.harmonized_image.resize((self.image_width, self.image_height), Image.ANTIALIAS)
+        harmonized_image_display = self.harmonized_image.resize((self.image_width, self.image_height), Image.LANCZOS)
 
         if self.harmonized_label:
             self.harmonized_label.destroy()
@@ -102,7 +102,17 @@ class ImageApp:
             self.clear_harmonized()
             self.display_images()
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = ImageApp(root)
-    root.mainloop()
+    def initialize_new_image_index(self):
+        existing_image_files = [f for f in os.listdir(self.images_output) if f.startswith("image_")]
+        existing_mask_files = [f for f in os.listdir(self.mask_output) if f.startswith("mask_")]
+        
+        image_indices = set()
+        for file_name in existing_image_files + existing_mask_files:
+            match = re.match(r"image_(\d+)\.png", file_name) or re.match(r"mask_(\d+)\.png", file_name)
+            if match:
+                image_indices.add(int(match.group(1)))
+
+        if image_indices:
+            self.new_image_index = max(image_indices) + 1
+        else:
+            self.new_image_index = 0

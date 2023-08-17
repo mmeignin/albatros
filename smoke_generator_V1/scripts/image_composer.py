@@ -1,12 +1,30 @@
-from PIL import Image, ImageEnhance, ImageOps
+from PIL import Image,ImageEnhance,ImageFilter
 import os
 import random
-import csv
-
+import numpy as np
+from skimage.filters import threshold_otsu
+import cv2
 
 ##-----------------------------------------------------------------------------------------
 ##                        methods for Image Composition
 ##-----------------------------------------------------------------------------------------
+def apply_gaussian_blur(image, radius=2):
+    """
+    Apply Gaussian blur to an image.
+
+    Args:
+        image (PIL object): the input image.
+        radius (float): The radius of the Gaussian kernel. Default is 2.
+
+    Returns:
+        PIL.Image.Image: The image with Gaussian blur applied.
+    """
+
+    # Apply Gaussian blur
+    blurred_image = image.filter(ImageFilter.GaussianBlur(radius))
+
+    return blurred_image
+
 def get_bounding_boxes(smoke_image, threshold=50):
     """
     Extracts the bounding boxes of the smoke from the given smoke image.
@@ -49,39 +67,42 @@ def rotate_image(image, max_rotation_angle):
     rotated_image = image.rotate(rotation_angle, resample=Image.BICUBIC, expand=True)
     return rotated_image
 
-def adjust_brightness(image, brightness_range=(0.8, 1.2)):
-    """
-    Randomly adjusts the brightness of the image within the specified brightness range.
-
-    Args:
-        image (Image): The image as a PIL Image object.
-        brightness_range (tuple, optional): The range of brightness adjustments as a tuple (min_brightness, max_brightness). Default is (0.8, 1.2).
-
-    Returns:
-        Image: The brightness-adjusted image as a PIL Image object.
-    """
-    brightness_factor = random.uniform(*brightness_range)
-    brightness_adjusted_image = ImageEnhance.Brightness(image).enhance(brightness_factor)
-    return brightness_adjusted_image
-
-def create_binary_mask(smoke_image, threshold_value=128):
+def create_binary_mask(smoke_image):
     """
     Creates a binary mask from the smoke image.
 
     Args:
-        smoke_image (Image): The smoke image as a PIL Image object.
-        threshold_value (int, optional): The threshold value for creating the binary mask. Default is 128.
+        smoke_image (Image): The smoke image as a PIL Image object (RGBA).
 
     Returns:
         Image: A binary mask image with the smoke in white and the rest in black.
     """
-    # Create a mask image with the smoke in white and the rest in black
-    mask_image = smoke_image.convert('L')
-    # Apply thresholding to get a binary mask
-    binary_mask = mask_image.point(lambda x: 255 if x > threshold_value else 0, '1')
+    # Extract the alpha channel and the RGB channels
+    alpha_channel = smoke_image.getchannel('A')
+    rgb_channels = smoke_image.convert('RGB')
+    
+    # Convert RGB channels to grayscale
+    gray_channels = rgb_channels.convert('L')
+    
+    # Convert alpha channel and grayscale to numpy arrays
+    alpha_array = np.array(alpha_channel)
+    gray_array = np.array(gray_channels)
+    
+    # Apply Otsu's thresholding to alpha channel and grayscale
+    alpha_threshold = threshold_otsu(alpha_array)*2
+    gray_threshold = threshold_otsu(gray_array)
+    
+    # Create binary masks based on thresholding
+    alpha_binary_mask = alpha_array >= alpha_threshold
+    gray_binary_mask = gray_array >= gray_threshold
+    
+    # Combine the masks using logical AND operation
+    combined_mask = np.logical_and(alpha_binary_mask, gray_binary_mask)
+    
+    # Convert the combined mask array back to PIL Image
+    combined_mask_image = Image.fromarray(combined_mask.astype(np.uint8) * 255, 'L')
 
-    return binary_mask
-
+    return combined_mask_image
 def calculate_random_position(background_width, background_height, smoke_width, smoke_height, background_image):
     """
     Calculates a random position to paste the smoke image within the background.
@@ -96,50 +117,73 @@ def calculate_random_position(background_width, background_height, smoke_width, 
     Returns:
         tuple: A tuple containing the random x and y offsets for pasting the smoke image.
     """
-    max_x_offset = max(0, background_width - smoke_width)
-    max_y_offset = max(0, background_height - smoke_height)
+    max_x_offset = background_width - smoke_width
+    max_y_offset = background_height - smoke_height
 
     for _ in range(100):  # Try a maximum of 100 times
         x_offset = random.randint(0, max_x_offset)
         y_offset = random.randint(0, max_y_offset)
 
-        is_non_sky_x = all([is_non_sky_pixel(background_image.getpixel((x_offset + i, y_offset))) for i in range(smoke_width)])
-        is_non_sky_y = all([is_non_sky_pixel(background_image.getpixel((x_offset, y_offset + i))) for i in range(smoke_height)])
-
-        if  is_non_sky_x and is_non_sky_y:
+        if is_non_sky_region(background_image, x_offset, y_offset, smoke_width, smoke_height):
             return x_offset, y_offset
-    
+
     # Return a fallback position if no valid position is found
     return max_x_offset, max_y_offset
 
-def is_non_sky_pixel(pixel):
+def is_non_sky_region(image, x_offset, y_offset, width, height):
     """
-    Checks if the given pixel is not part of the sky region based on certain color thresholds.
+    Checks if the given region is not part of the sky region based on certain color thresholds.
 
     Args:
-        pixel (tuple): The RGB values of the pixel.
+        image (Image): The image containing the region to check.
+        x_offset (int): X offset of the region.
+        y_offset (int): Y offset of the region.
+        width (int): Width of the region.
+        height (int): Height of the region.
 
     Returns:
-        bool: True if the pixel is not part of the sky region, False otherwise.
+        bool: True if the region is not part of the sky region, False otherwise.
     """
-    # Define thresholds for blue and whitish colors
     blue_threshold = 100
     whitish_threshold = 170
 
-    # Check if the pixel is not predominantly blue or whitish
-    return not ((pixel[2] > blue_threshold and pixel[2] - pixel[1] > 15 and pixel[2] - pixel[0] > 15) or
-                (pixel[0] > whitish_threshold and pixel[1] > whitish_threshold and pixel[2] > whitish_threshold))
+    for i in range(width):
+        for j in range(height):
+            pixel = image.getpixel((x_offset + i, y_offset + j))
+            if (
+                pixel[2] > blue_threshold and pixel[2] - pixel[1] > 15 and pixel[2] - pixel[0] > 15
+            ) or (
+                pixel[0] > whitish_threshold and pixel[1] > whitish_threshold and pixel[2] > whitish_threshold
+            ):
+                return False
+    return True
 
 def add_white_mask(image, alpha):
-    # Create a white transparent overlay with the same size as the image
-    overlay = Image.new('RGBA', image.size, color=(255, 255, 255, int(255 * alpha)))
-    image=image.convert('RGBA')
-    # Blend the original image with the white overlay using the blend() function
-    blended_image = Image.blend(image, overlay, alpha)
+    """
+    Adds a white overlay to the RGB channels of the input image.
+
+    Args:
+        image (PIL.Image.Image): The input image type RGB
+        alpha (float): The alpha value for blending the white overlay. Should be in the range [0, 1].
+
+    Returns:
+        PIL.Image.Image: The image with the white overlay added.
+    """
+    # Convert the image to a NumPy array
+    image_array = np.array(image)
+
+    # Create a white overlay with the same shape as the image
+    overlay = np.ones_like(image_array) * [255, 255, 255]
+
+    # Blend the original image with the white overlay using alpha
+    blended_array = (1 - alpha) * image_array + alpha * overlay
+
+    # Convert the blended array back to a PIL image
+    blended_image = Image.fromarray(np.uint8(blended_array))
 
     return blended_image
 
-def composite_smoke(background_path, smoke_image_path,white_mask = (0.15,0.25),binary_mask_treshold = 10 ):
+def composite_smoke(background_path, smoke_image_path,rescaling_factor=random.uniform(0.12,0.3),white_mask = (0.15,0.25),binary_mask_treshold = 10 ):
     """
     Composites a smoke image onto a random background image with rotation and brightness adjustment.
 
@@ -162,10 +206,11 @@ def composite_smoke(background_path, smoke_image_path,white_mask = (0.15,0.25),b
 
         if bounding_boxes_image:
             # Calculate the maximum rescaling size based on the bounding box dimensions
-            max_rescaling_size = min(background_width / bounding_boxes_image.width, background_height / bounding_boxes_image.height)
-
-            # Randomly select a rescaling size within a certain range
-            smoke_rescaling_size = random.uniform(0.2, 0.4) * max_rescaling_size
+            min_rescaling_size = min(background_width / bounding_boxes_image.width, background_height / bounding_boxes_image.height)
+            if min_rescaling_size > 1 : # case where the bb is small
+                smoke_rescaling_size = rescaling_factor
+            else :  # case where the bb is large
+                smoke_rescaling_size = min_rescaling_size*rescaling_factor
 
             # Resize the bounding boxed smoke image while maintaining the aspect ratio
             new_width = int(bounding_boxes_image.width * smoke_rescaling_size)
@@ -177,16 +222,18 @@ def composite_smoke(background_path, smoke_image_path,white_mask = (0.15,0.25),b
 
             # Calculate the position to paste the smoke image at the center of the background
             # Calculate the maximum allowed x and y offsets to ensure the smoke image is fully contained
-            x_offset,y_offset = calculate_random_position(background_width,background_height,new_width,new_height,background)
+            x_offset,y_offset = calculate_random_position(background_width,background_height,new_width,new_height,background_image=background)
 
             # Paste the brightness-adjusted smoke image onto the transparent background
-            transparent_background.paste(smoke_image, (x_offset, y_offset), mask=smoke_image)
+            transparent_background.paste(smoke_image, (x_offset, y_offset),mask=smoke_image)
             # Create a Binary Mask
-            binary_mask = create_binary_mask(transparent_background, threshold_value=binary_mask_treshold)
+            binary_mask = create_binary_mask(transparent_background)
             # Composite the smoke onto the background
             composite = Image.alpha_composite(background, transparent_background)
+            # Convert to RGB to ensure code stability
+            composite = composite.convert("RGB")
             alpha = random.uniform(white_mask[0],white_mask[1])
-            composite = add_white_mask(composite,alpha)
+            composite = add_white_mask(composite,alpha=alpha)
             return composite,binary_mask
         else:
             print("No bounding boxes found in the smoke image.")
@@ -242,3 +289,57 @@ def select_smoke_image(base_folder):
     print("No smoke images found.")
     return None
 
+
+##-----------------------------------------------------------------------------------------
+##                    Data Augmentation Transforms Methods
+##-----------------------------------------------------------------------------------------
+
+def apply_advanced_motion_blur(image, angle_degrees=np.random.randint(0,360), blur_strength=np.clip(np.random.exponential(4),0,20)):
+    """
+    Apply motion blur to an image using a specified kernel length and angle.
+
+    Args:
+        image (cv2 object): the input image.
+        blur_strength (float): default is np.random.uniform(0,20)
+        angle_degrees (float): Angle of the motion blur kernel in degrees. If None, a random angle is used.
+
+    Returns:
+        cv2 image : The image with motion blur applied.
+    """
+    # Convert angle to radians
+    angle = np.deg2rad(angle_degrees) if angle_degrees is not None else np.deg2rad(np.random.uniform(0, 359))
+    # Calculate kernel offsets using trigonometry
+    kernel_size = int(blur_strength * 2) + 1
+    center = kernel_size // 2
+    kernel = np.zeros((kernel_size, kernel_size))
+    for i in range(kernel_size):
+        offset_x = int(center + i * np.cos(angle))
+        offset_y = int(center + i * np.sin(angle))
+        if 0 <= offset_x < kernel_size and 0 <= offset_y < kernel_size:
+            kernel[offset_y, offset_x] = 1.0 / kernel_size
+
+    # Apply the kernel using OpenCV's filter2D function
+    motion_blur = cv2.filter2D(image, -1, kernel)
+
+    # Calculate scaling factor to maintain brightness
+    scaling_factor = np.sum(kernel)
+
+    # Normalize image pixel values
+    motion_blur = (motion_blur / scaling_factor).astype(np.uint8)
+
+    return motion_blur
+
+def adjust_brightness(image, brightness_range=(0.8, 1.2)):
+    """
+    Randomly adjusts the brightness of the image within the specified brightness range.
+
+    Args:
+        image (Image): The image as a PIL Image object.
+        brightness_range (tuple, optional): The range of brightness adjustments as a tuple (min_brightness, max_brightness). Default is (0.8, 1.2).
+
+    Returns:
+        Image: The brightness-adjusted image as a PIL Image object.
+    """
+    brightness_factor = random.uniform(*brightness_range)
+    brightness_adjusted_image = ImageEnhance.Brightness(image).enhance(brightness_factor)
+    return brightness_adjusted_image

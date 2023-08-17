@@ -48,13 +48,14 @@ The Smoke Generator Project provides a simple yet effective solution for creatin
     - 🐍 image_composer.py: Composes or processes smoke-related images
     - 🐍 image_harmonization.py: Harmonizes image qualities
     - 🐍 install_harmonization.py: Manages image harmonization process
+    - 🐍 bb_eda.py: EDA for rescaling size
+    - 🐍 mask_eda.py: EDA for smoke mask quality
+    - 🐍 sky_eda.py: EDA for non sky regions
+    - 🐍 motion_blur_eda.py: motion blur transforms
     - 🐍 main.py: Main entry point script for running the project
 - **(Future project deployment):**
   - 📁 smoke_dataset_V2: Placeholder for version 2 of the smoke dataset
   - 📁 smoke_generator_V2: Placeholder for version 2 of the smoke generation code
-
-
-
 
 
 
@@ -70,7 +71,11 @@ The Smoke Generator Project provides a simple yet effective solution for creatin
   - torch==1.9.1
   - torchvision==0.10.1
   - gdown==4.7.1
-
+  - cv2
+  - tk
+  - scikit image
+  - pandas 
+  - numpy 
 ### Installation
 
 1. Clone the repository to your local machine:
@@ -78,13 +83,17 @@ The Smoke Generator Project provides a simple yet effective solution for creatin
 ```bash
 git clone https://github.com/mmeignin/albatros.git
 cd albatros
+sh create_python_env.sh
+#activate python env
+python3 install_harmonization.py
+python3 main.py
 ```
 
 ### Usage
 
 1. Open Blender and run the `blender_main.py` script in the `blender_file` folder to generate smoke plume images in the `blender_images` folder.
 
-2. Run the `main.py` script in the root folder of the project to randomly select a background image and a smoke plume image, composite them with rotation and brightness adjustments, and display the composite image.
+2. Run the `main.py` to perform composition between smoke images and background images
 
 3. Experiment with the configuration options in the `main.py` script to customize the appearance of the composite images.
 

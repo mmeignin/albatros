@@ -1,4 +1,3 @@
-import os
 import tkinter as tk
 import cProfile
 import pstats
@@ -15,10 +14,10 @@ def profile_image_composition():
     root.mainloop()
 
 if __name__ == '__main__':
-    cProfile.run("profile_image_composition()", "image_composition_profile")
+    cProfile.run("profile_image_composition()", "image_composition_profile.prof")
     
     # Display profiling results
-    stats = pstats.Stats("image_composition_profile")
+    stats = pstats.Stats("image_composition_profile.prof")
     stats.strip_dirs()
     stats.sort_stats("cumulative")
     stats.print_stats()
