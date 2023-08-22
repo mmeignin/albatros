@@ -3,7 +3,20 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
+##-------------------------------------------------------------------------------------------------------------------------------------
+##                         Script to perform EDA on background to determine best tresholds for unrealistic regions of fire appearnces
+##-------------------------------------------------------------------------------------------------------------------------------------
+
 def is_non_sky_pixel(pixel):
+    """
+    Determine if a pixel is a non-sky pixel based on color thresholds.
+
+    Args:
+        pixel (tuple): RGB values of the pixel.
+
+    Returns:
+        bool: True if the pixel is a non-sky pixel, False otherwise.
+    """
     blue_threshold = 100
     whitish_threshold = 170
     pixel = np.int32(pixel)
@@ -11,6 +24,15 @@ def is_non_sky_pixel(pixel):
                 (pixel[0] > whitish_threshold and pixel[1] > whitish_threshold and pixel[2] > whitish_threshold))
 
 def create_sky_mask(image):
+    """
+    Create a binary mask to identify non-sky regions in an image.
+
+    Args:
+        image (PIL.Image.Image): The input image.
+
+    Returns:
+        PIL.Image.Image: A binary mask where non-sky pixels are set to 255 and sky pixels to 0.
+    """
     np_image = np.array(image)
     height, width, _ = np_image.shape
 
@@ -24,8 +46,9 @@ def create_sky_mask(image):
     return Image.fromarray(mask, "L")
 
 def main():
-    background_folder = r"D:\mploi\Documents\Albatros\albatros\smoke_generator_V1\background_images"
-
+    images_folder = r"..\background_images"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    background_folder = os.path.join(script_dir,images_folder)
     # Iterate through each image in the folder
     for filename in os.listdir(background_folder):
         if filename.endswith(".jpg") or filename.endswith(".png"):

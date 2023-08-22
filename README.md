@@ -25,37 +25,50 @@ The Smoke Generator Project provides a simple yet effective solution for creatin
 
 ## Project Structure
 
-## Project Structure
+# Project Structure
 
-- 📝 README.md: Detailed project documentation and information.
+This document outlines the structure of the Smoke Generation Project for version 1.
 
-- **smoke_generator_env**: python env for library management
-- 🔧 create_python_env.sh
-- 📄 python_dependencies.txt
+## Directory Structure
 
-- **smoke_dataset_V1**: The main folder for version 1 of the smoke dataset
-- **smoke_generator_V1**: The main folder for version 1 of the smoke generation code
-  - **background_images**: Contains background images for smoke composition
-  - **blender_files**: Holds Blender-related files and scripts for smoke simulation
-    - 🐍 blender_main.py: Orchestrates smoke simulation generation within Blender
-    - 🐍 blender_scene_utils.py: Contains utility methods for managing scene operations
-    - 💻 random_smoke_plume.blend: Template/base Blender file for smoke simulations
-  - **blender_images**: Contains numbered folders for different smoke plume simulations
-    - 📁 smokeplume_(0...20)
-  - **scripts**: Contains various scripts related to the project
-    - 🐍 application_interface.py: Manages user interaction and UI
-    - 🐍 display_project_architecture.py: Visualizes the project structure
-    - 🐍 image_composer.py: Composes or processes smoke-related images
-    - 🐍 image_harmonization.py: Harmonizes image qualities
-    - 🐍 install_harmonization.py: Manages image harmonization process
-    - 🐍 bb_eda.py: EDA for rescaling size
-    - 🐍 mask_eda.py: EDA for smoke mask quality
-    - 🐍 sky_eda.py: EDA for non sky regions
-    - 🐍 motion_blur_eda.py: motion blur transforms
-    - 🐍 main.py: Main entry point script for running the project
-- **(Future project deployment):**
-  - 📁 smoke_dataset_V2: Placeholder for version 2 of the smoke dataset
-  - 📁 smoke_generator_V2: Placeholder for version 2 of the smoke generation code
+- **smoke_dataset_V1**: The primary folder for version 1 of the smoke dataset. Contains image and mask data.
+  - 📁 images: Directory for smoke dataset images.
+  - 📁 masks: Directory for corresponding masks.
+
+- **smoke_generator_V1**: The primary folder for version 1 of the smoke generation code. Includes various subdirectories and scripts.
+  - 📁 background_images: Contains background images used for composing smoke images.
+  - 📁 blender_files: Contains Blender-related files and scripts for smoke simulation.
+    - 🐍 blender_main.py: Orchestrates the generation of smoke simulations within Blender.
+    - 🐍 blender_scene_utils.py: Utility methods for managing scene operations in Blender.
+    - 💻 random_smoke_plume.blend: Template/base Blender file for creating smoke simulations.
+  - 📁 blender_images: Holds numbered folders for different smoke plume simulations (e.g., 'smokeplume_0').
+  - 📁 scripts: Contains various Python scripts related to the project.
+    - 🐍 bb_EDA.py: Conducts exploratory data analysis (EDA) for rescaling size.
+    - 🐍 display_project_architecture.py: Visualizes the project's directory structure.
+    - 🐍 install_harmonization.py: Manages the image harmonization process.
+    - 🐍 main.py: The main entry point script for running the project.
+    - 🐍 mask_eda.py: Conducts EDA for assessing smoke mask quality.
+    - 🐍 sky_eda.py: Conducts EDA for non-sky regions.
+    - 🐍 test_transforms.py: Contains scripts for testing image transformations.
+    - 📁 utils: Utility scripts and modules.
+      - 🐍 application_interface.py: Manages user interaction and UI.
+      - 🐍 image_composition.py: Composes and processes smoke-related images.
+      - 🐍 image_harmonization.py: Harmonizes image qualities.
+      - 📁 target_images: Target images used in transformations.
+      - 🐍 transform_methods.py: Contains various image transformation methods.
+
+- **smoke_generator_V2**: Placeholder for version 2 of the smoke generation code.
+  - 📁 model: Contains scripts related to the machine learning model for smoke generation.
+    - 🐍 custom_dataset.py: Custom dataset class for training the model.
+    - 🐍 training.py: Script for training the smoke generation model.
+    - 🐍 unet.py: Definition of the UNet architecture used in the model.
+  - 📁 weight: Directory for storing model weights and checkpoints.
+
+## Environment Setup
+
+- **smoke_generator_env**: This directory contains the Python virtual environment used for library management.
+  - 🔧 create_python_env.sh: A script to create and set up the Python virtual environment.
+  - 📄 python_dependencies.txt: A list of Python package dependencies required for the project.
 
 
 

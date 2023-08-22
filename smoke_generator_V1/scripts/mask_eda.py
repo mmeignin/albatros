@@ -1,17 +1,17 @@
-##-------------------------------------------------------------------------------------------------------------------
-##                         Script to perform EDA on smoke bounding boxes to determine best treshold
-##-------------------------------------------------------------------------------------------------------------------
-
 import os
 import random
 import pandas as pd
 from PIL import Image
-from image_composer import get_bounding_boxes,create_binary_mask # Import your get_bounding_boxes function
+from utils.image_composition import get_bounding_boxes,create_binary_mask # Import your get_bounding_boxes function
 import matplotlib.pyplot as plt
 from skimage.filters import threshold_otsu
 from skimage import io, color
 import numpy as np
 from skimage.filters import threshold_mean,threshold_local,threshold_yen,threshold_li,threshold_triangle
+
+##-------------------------------------------------------------------------------------------------------------------
+##                         Script to perform EDA on smoke bounding boxes to determine best treshold
+##-------------------------------------------------------------------------------------------------------------------
 
 def determine_optimal_threshold(image_paths):
     """

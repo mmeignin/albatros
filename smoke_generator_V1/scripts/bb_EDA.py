@@ -1,9 +1,9 @@
 import os
 from PIL import Image
-from image_composer import get_bounding_boxes, composite_smoke # Import your get_bounding_boxes function
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from utils.image_composition import composite_smoke,get_bounding_boxes
 
 ##-------------------------------------------------------------------------------------------------------------------
 ##                         Script to perform EDA on smoke bounding boxes to determine best rescaling factor

@@ -8,23 +8,6 @@ import cv2
 ##-----------------------------------------------------------------------------------------
 ##                        methods for Image Composition
 ##-----------------------------------------------------------------------------------------
-def apply_gaussian_blur(image, radius=2):
-    """
-    Apply Gaussian blur to an image.
-
-    Args:
-        image (PIL object): the input image.
-        radius (float): The radius of the Gaussian kernel. Default is 2.
-
-    Returns:
-        PIL.Image.Image: The image with Gaussian blur applied.
-    """
-
-    # Apply Gaussian blur
-    blurred_image = image.filter(ImageFilter.GaussianBlur(radius))
-
-    return blurred_image
-
 def get_bounding_boxes(smoke_image, threshold=50):
     """
     Extracts the bounding boxes of the smoke from the given smoke image.
@@ -103,6 +86,7 @@ def create_binary_mask(smoke_image):
     combined_mask_image = Image.fromarray(combined_mask.astype(np.uint8) * 255, 'L')
 
     return combined_mask_image
+
 def calculate_random_position(background_width, background_height, smoke_width, smoke_height, background_image):
     """
     Calculates a random position to paste the smoke image within the background.
@@ -290,56 +274,3 @@ def select_smoke_image(base_folder):
     return None
 
 
-##-----------------------------------------------------------------------------------------
-##                    Data Augmentation Transforms Methods
-##-----------------------------------------------------------------------------------------
-
-def apply_advanced_motion_blur(image, angle_degrees=np.random.randint(0,360), blur_strength=np.clip(np.random.exponential(4),0,20)):
-    """
-    Apply motion blur to an image using a specified kernel length and angle.
-
-    Args:
-        image (cv2 object): the input image.
-        blur_strength (float): default is np.random.uniform(0,20)
-        angle_degrees (float): Angle of the motion blur kernel in degrees. If None, a random angle is used.
-
-    Returns:
-        cv2 image : The image with motion blur applied.
-    """
-    # Convert angle to radians
-    angle = np.deg2rad(angle_degrees) if angle_degrees is not None else np.deg2rad(np.random.uniform(0, 359))
-    # Calculate kernel offsets using trigonometry
-    kernel_size = int(blur_strength * 2) + 1
-    center = kernel_size // 2
-    kernel = np.zeros((kernel_size, kernel_size))
-    for i in range(kernel_size):
-        offset_x = int(center + i * np.cos(angle))
-        offset_y = int(center + i * np.sin(angle))
-        if 0 <= offset_x < kernel_size and 0 <= offset_y < kernel_size:
-            kernel[offset_y, offset_x] = 1.0 / kernel_size
-
-    # Apply the kernel using OpenCV's filter2D function
-    motion_blur = cv2.filter2D(image, -1, kernel)
-
-    # Calculate scaling factor to maintain brightness
-    scaling_factor = np.sum(kernel)
-
-    # Normalize image pixel values
-    motion_blur = (motion_blur / scaling_factor).astype(np.uint8)
-
-    return motion_blur
-
-def adjust_brightness(image, brightness_range=(0.8, 1.2)):
-    """
-    Randomly adjusts the brightness of the image within the specified brightness range.
-
-    Args:
-        image (Image): The image as a PIL Image object.
-        brightness_range (tuple, optional): The range of brightness adjustments as a tuple (min_brightness, max_brightness). Default is (0.8, 1.2).
-
-    Returns:
-        Image: The brightness-adjusted image as a PIL Image object.
-    """
-    brightness_factor = random.uniform(*brightness_range)
-    brightness_adjusted_image = ImageEnhance.Brightness(image).enhance(brightness_factor)
-    return brightness_adjusted_image

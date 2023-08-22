@@ -2,7 +2,8 @@ import tkinter as tk
 import cProfile
 import pstats
 
-from application_interface import ImageApp
+
+from utils import ImageApp
 
 ##-----------------------------------------------------------------------------------------
 ##                        Main Script

@@ -2,8 +2,8 @@ import os
 import re
 import tkinter as tk
 from PIL import ImageTk, Image
-from image_composer import composite_smoke, select_background_image, select_smoke_image
-from image_harmonization import harmonize_smoke_with_background
+from .image_composition import composite_smoke, select_background_image, select_smoke_image
+from .image_harmonization import harmonize_smoke_with_background
 ##-----------------------------------------------------------------------------------------
 ##                        Main App for Dataset Generation
 ##-----------------------------------------------------------------------------------------

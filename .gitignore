@@ -12,6 +12,10 @@ smoke_generator_V1/smoke_generator_env
 smoke_generator_V1/scripts/harmonization_scripts
 #smoke_generator_V1/blender_files/random_smokeplume.blend
 smoke_generator_V1/blender_files/random_smokeplume/*
+# Final Dataset
+smoke_dataset_V1/images/*
+smoke_dataset_V1/masks/*
+# file extensions
 *.pth
 *.bin
 *.blend1
