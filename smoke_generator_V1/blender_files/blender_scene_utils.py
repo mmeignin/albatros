@@ -63,26 +63,26 @@ class Scene:
         # Generate a random location for the wind within the defined range
         location = (
             random.uniform(min_x, max_x),
-            random.uniform(min_y, max_y),
+            -5,
             random.uniform(min_z, max_z)
         )
         # Define the minimum and maximum values for the wind's strength
-        min_strength, max_strength = -10, 10
+        min_strength, max_strength = 4,12 
         # Create the wind effector at the randomly generated location and set its scale to (1, 1, 1)
         bpy.ops.object.effector_add(type='WIND', enter_editmode=False, align='WORLD', location=location, scale=(1, 1, 1))
         wind = bpy.context.object
         # Generate random rotation angles for the wind's orientation
         rotation = (
-            random.uniform(0, 360),
-            random.uniform(0, 360),
-            random.uniform(0, 360)
+            random.uniform(180,360) ,
+            random.uniform(-90, 90),
+           0
         )
         # Set the wind's rotation using the generated rotation angles
         wind.rotation_euler = [math.radians(angle) for angle in rotation]
         # Set the wind's strength to a random value within the defined range
         wind.field.strength = random.uniform(min_strength, max_strength)
         # Set the wind's noise parameter to introduce variation in the wind force
-        wind.field.noise = 0.5
+        wind.field.noise = 1
         # Add the wind effector object to the list of objects in the scene
         self.objects.append(wind)
 
@@ -166,8 +166,8 @@ class Scene:
         - density: Density of the smoke over time.
         The density of the smoke is animated over time to create a more realistic smoke behavior.
         """
-        min_speed = 10
-        max_speed = 30  
+        min_speed = 1
+        max_speed = 50  
         # Check if the added object is the smoke domain
         if smoke_effector.type == 'MESH':
             # Access the fluid modifier
@@ -175,11 +175,13 @@ class Scene:
             if smoke_effector_fluid is not None:
                 smoke_effector_fluid.flow_settings.smoke_color = (1, 1, 1)
                 smoke_effector_fluid.flow_settings.subframes = 2
-                smoke_effector_fluid.flow_settings.surface_distance = random.uniform(0.75, 1.5)
+                smoke_effector_fluid.flow_settings.surface_distance = random.uniform(0.75,1.5)
+                smoke_effector_fluid.flow_settings.volume_density = 1
                 smoke_effector_fluid.flow_settings.use_initial_velocity = True
                 smoke_effector_fluid.flow_settings.velocity_factor = 0
                 smoke_effector_fluid.flow_settings.velocity_coord[0] = random.choice([-1, 1]) * random.uniform(min_speed, max_speed)
-                smoke_effector_fluid.flow_settings.velocity_coord[2] = random.uniform(min_speed, max_speed)
+                smoke_effector_fluid.flow_settings.velocity_coord[1] = random.uniform(min_speed,max_speed/10)
+                smoke_effector_fluid.flow_settings.velocity_coord[2] = random.choice([-1, 1]) * random.uniform(min_speed, max_speed)
                 print(f"Initial Velocity {smoke_effector_fluid.flow_settings.velocity_coord[0],smoke_effector_fluid.flow_settings.velocity_coord[1],smoke_effector_fluid.flow_settings.velocity_coord[2]}")
                 # Animate Density over time
                 smoke_effector_fluid.flow_settings.density = 0.0
@@ -225,7 +227,7 @@ class Scene:
         # Find the node responsible for controlling smoke density (principled volume node)
         principled_volume = nodes[1]
         # Change the material color of the smoke
-        color_intensity = random.uniform(0.5,1)
+        color_intensity = 1
         principled_volume.inputs[0].default_value = (color_intensity, color_intensity, color_intensity, 1)
 
         # Create attribute and math nodes to control density
@@ -238,7 +240,7 @@ class Scene:
         
         math_node_2 = nodes.new(type='ShaderNodeMath')
         math_node_2.operation = 'MULTIPLY'  
-        math_node_2.inputs[1].default_value = 1.5
+        math_node_2.inputs[1].default_value = 1
         # Connect nodes to control density
         material.node_tree.links.new(attribute_node.outputs['Fac'], math_node_1.inputs[0])
         material.node_tree.links.new(math_node_1.outputs['Value'], math_node_2.inputs['Value'])
@@ -258,7 +260,7 @@ class Scene:
         # Enable film transparency to render smoke with a transparent background
         bpy.context.scene.render.film_transparent = True
         # Enable preview denoising to reduce noise during preview rendering
-        bpy.context.scene.cycles.use_preview_denoising = True
+        bpy.context.scene.cycles.use_denoising = False
         # Adjust volume bounces to control the amount of light scattering in the smoke
         bpy.context.scene.cycles.volume_bounces = 2
         # Set the number of samples for a higher quality render

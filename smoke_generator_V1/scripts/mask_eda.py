@@ -90,7 +90,7 @@ def display_images_with_otsu_threshold(images_folder):
     plt.tight_layout()
     plt.show()
 
-smoke_folder = r'..\blender_images\smokeplume_8'
+smoke_folder = r'..\blender_images\smokeplume_83'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 smoke_folder = os.path.join(script_dir,smoke_folder)
 image_paths = [smoke_folder + "\\" + x  for x in os.listdir(smoke_folder)]

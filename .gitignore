@@ -12,19 +12,25 @@ smoke_generator_V1/smoke_generator_env
 smoke_generator_V1/scripts/harmonization_scripts
 #smoke_generator_V1/blender_files/random_smokeplume.blend
 smoke_generator_V1/blender_files/random_smokeplume/*
+smoke_generator_V1/blender_files/blender_file.blend
 # Final Dataset
 smoke_dataset_V1/images/*
 smoke_dataset_V1/masks/*
+smoke_generator_V2/weight
 # file extensions
 *.pth
 *.bin
 *.blend1
 *.prof
-
+*.png
+*.jpg
+*.pt
+*.jpeg
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+*.exe
 
 # C extensions
 *.so

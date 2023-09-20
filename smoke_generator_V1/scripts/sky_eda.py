@@ -20,8 +20,7 @@ def is_non_sky_pixel(pixel):
     blue_threshold = 100
     whitish_threshold = 170
     pixel = np.int32(pixel)
-    return not ((pixel[2] > blue_threshold and pixel[2] - pixel[1] > 15 and pixel[2] - pixel[0] > 15) or
-                (pixel[0] > whitish_threshold and pixel[1] > whitish_threshold and pixel[2] > whitish_threshold))
+    return not ((pixel[0] > whitish_threshold and pixel[1] > whitish_threshold and pixel[2] > whitish_threshold))
 
 def create_sky_mask(image):
     """
@@ -51,7 +50,7 @@ def main():
     background_folder = os.path.join(script_dir,images_folder)
     # Iterate through each image in the folder
     for filename in os.listdir(background_folder):
-        if filename.endswith(".jpg") or filename.endswith(".png"):
+        if filename.endswith(".jpg") or filename.endswith(".png") and "_4" in filename:
             original_image = Image.open(os.path.join(background_folder, filename))
             mask = create_sky_mask(original_image)
 

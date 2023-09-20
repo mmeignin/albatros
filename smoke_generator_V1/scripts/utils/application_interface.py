@@ -13,8 +13,8 @@ class ImageApp:
         self.root = root
         self.root.title("Image Composition App")
 
-        self.image_width = 540
-        self.image_height = 540
+        self.image_width = 700
+        self.image_height = 700
         
         self.base_folder = 'D:/mploi/Documents/Albatros/albatros/smoke_generator_V1'
         self.output_folder = 'D:/mploi/Documents/Albatros/albatros/smoke_dataset_V1'

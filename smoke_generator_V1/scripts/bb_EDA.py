@@ -55,7 +55,6 @@ def analyze_smoke_images(smoke_folder, background_path):
 
     return df
 
-
 def perform_eda(df):
     # Summary statistics
     print(df.describe())

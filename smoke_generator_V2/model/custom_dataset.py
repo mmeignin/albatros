@@ -18,7 +18,7 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
         image_name = self.image_filenames[idx]
         image_path = os.path.join(self.image_folder, image_name)
-        mask_path = os.path.join(self.mask_folder, image_name.replace("image_", "mask_"))  # Adjust mask file extension as needed
+        mask_path = os.path.join(self.mask_folder, image_name.replace(".jpg",".png").replace("image","mask"))  # Adjust mask file extension as needed
         
         image = Image.open(image_path).convert("RGB")
         mask = Image.open(mask_path).convert("L")  # Convert mask to grayscale
@@ -40,15 +40,16 @@ root_dir= r'D:\mploi\Documents\Albatros\albatros\smoke_dataset_V1'
 dataset = CustomDataset(root_dir, transform=data_transform)
 
 # Create a DataLoader for the dataset
-batch_size = 4
+batch_size = 1
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-"""
+
 import matplotlib.pyplot as plt
 
 
 for batch_idx, batch in enumerate(dataloader):
     images = batch['image']
     masks = batch['mask']
+   
 
     
     for i in range(images.size(0)):
@@ -66,4 +67,6 @@ for batch_idx, batch in enumerate(dataloader):
         
         plt.tight_layout()
         plt.show()
-"""
+
+
+

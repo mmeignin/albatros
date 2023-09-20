@@ -72,7 +72,7 @@ def create_binary_mask(smoke_image):
     gray_array = np.array(gray_channels)
     
     # Apply Otsu's thresholding to alpha channel and grayscale
-    alpha_threshold = threshold_otsu(alpha_array)*2
+    alpha_threshold = threshold_otsu(alpha_array)
     gray_threshold = threshold_otsu(gray_array)
     
     # Create binary masks based on thresholding
@@ -110,10 +110,10 @@ def calculate_random_position(background_width, background_height, smoke_width, 
 
         if is_non_sky_region(background_image, x_offset, y_offset, smoke_width, smoke_height):
             return x_offset, y_offset
-
+    
     # Return a fallback position if no valid position is found
     return max_x_offset, max_y_offset
-
+    
 def is_non_sky_region(image, x_offset, y_offset, width, height):
     """
     Checks if the given region is not part of the sky region based on certain color thresholds.
@@ -131,9 +131,18 @@ def is_non_sky_region(image, x_offset, y_offset, width, height):
     blue_threshold = 100
     whitish_threshold = 170
 
+    pixel = image.getpixel((x_offset , y_offset ))
+    if (
+            pixel[2] > blue_threshold and pixel[2] - pixel[1] > 15 and pixel[2] - pixel[0] > 15
+        ) or (
+            pixel[0] > whitish_threshold and pixel[1] > whitish_threshold and pixel[2] > whitish_threshold
+        ):
+            return False
+    return True
+    """
     for i in range(width):
         for j in range(height):
-            pixel = image.getpixel((x_offset + i, y_offset + j))
+            pixel = image.getpixel((x_offset , y_offset + j))
             if (
                 pixel[2] > blue_threshold and pixel[2] - pixel[1] > 15 and pixel[2] - pixel[0] > 15
             ) or (
@@ -141,6 +150,7 @@ def is_non_sky_region(image, x_offset, y_offset, width, height):
             ):
                 return False
     return True
+    """
 
 def add_white_mask(image, alpha):
     """
@@ -167,7 +177,45 @@ def add_white_mask(image, alpha):
 
     return blended_image
 
-def composite_smoke(background_path, smoke_image_path,rescaling_factor=random.uniform(0.12,0.3),white_mask = (0.15,0.25),binary_mask_treshold = 10 ):
+def adjust_brightness(image, brightness_factor=1.0):
+    """
+    Adjusts the brightness of an image using PIL (Pillow).
+
+    Args:
+        image (PIL.Image): The input image as a PIL Image object.
+        brightness_factor (float): Brightness adjustment factor (1.0 for no change).
+
+    Returns:
+        PIL.Image: The adjusted image as a PIL Image object.
+    """
+    enhancer = ImageEnhance.Brightness(image)
+    adjusted_image = enhancer.enhance(brightness_factor)
+    return adjusted_image
+
+def gamma_correction(image, gamma=1.0):
+    """
+    Adjusts the brightness of the image using gamma correction.
+
+    Args:
+        image (PIL.Image): The image as a pil object
+        gamma (float): Gamma correction factor (1.0 for no change).
+
+    Returns:
+        np.ndarray: The adjusted image as a NumPy array.
+    """
+    image = np.array(image)
+    # Ensure the image is in the correct data type
+    image = image.astype(np.float32) / 255.0
+
+    # Apply gamma correction
+    adjusted_image = np.power(image, gamma)
+
+    # Rescale to 0-255 and convert back to uint8
+    adjusted_image = (adjusted_image * 255.0).clip(0, 255).astype(np.uint8)
+
+    return Image.fromarray(adjusted_image)
+
+def composite_smoke(background_path, smoke_image_path,rescaling_factor=None,white_mask = (0.15,0.25),brightness_factor = None ,gamma_factor = 1 ):
     """
     Composites a smoke image onto a random background image with rotation and brightness adjustment.
 
@@ -177,6 +225,14 @@ def composite_smoke(background_path, smoke_image_path,rescaling_factor=random.un
     Returns:
         Image: The composite image as a PIL Image object, or None if the smoke image is not found.
     """
+    # Define rescaling and brightness parameters
+    if rescaling_factor == None :
+        rescaling_factor = random.uniform(0.12,0.33)
+    if brightness_factor == None:
+        brightness_factor = random.uniform(1.1,2)
+    alpha = random.uniform(white_mask[0],white_mask[1])
+    #print(rescaling_factor,brightness_factor)
+    
     # Load the background image
     background = Image.open(background_path).convert("RGBA")
     background_width, background_height = background.size
@@ -184,7 +240,9 @@ def composite_smoke(background_path, smoke_image_path,rescaling_factor=random.un
     if os.path.exists(smoke_image_path):
         # Load the smoke image
         smoke_image = Image.open(smoke_image_path)
-
+        
+        smoke_image = adjust_brightness(image=smoke_image,brightness_factor=brightness_factor)
+        smoke_image = gamma_correction(image=smoke_image,gamma=gamma_factor)
         # Get the bounding boxes of the smoke
         bounding_boxes_image = get_bounding_boxes(smoke_image)
 
@@ -207,16 +265,14 @@ def composite_smoke(background_path, smoke_image_path,rescaling_factor=random.un
             # Calculate the position to paste the smoke image at the center of the background
             # Calculate the maximum allowed x and y offsets to ensure the smoke image is fully contained
             x_offset,y_offset = calculate_random_position(background_width,background_height,new_width,new_height,background_image=background)
-
             # Paste the brightness-adjusted smoke image onto the transparent background
-            transparent_background.paste(smoke_image, (x_offset, y_offset),mask=smoke_image)
+            transparent_background.paste(smoke_image,(x_offset,y_offset),mask=smoke_image)
             # Create a Binary Mask
             binary_mask = create_binary_mask(transparent_background)
             # Composite the smoke onto the background
             composite = Image.alpha_composite(background, transparent_background)
             # Convert to RGB to ensure code stability
             composite = composite.convert("RGB")
-            alpha = random.uniform(white_mask[0],white_mask[1])
             composite = add_white_mask(composite,alpha=alpha)
             return composite,binary_mask
         else:
@@ -239,9 +295,12 @@ def select_background_image(base_folder):
         str: The path to the selected background image, or None if no images are found.
     """
     # Construct the path to the background images folder
+    # file number to select background data
+    new_file_number = 807
     background_folder = os.path.join(base_folder, "background_images")
     # Get a list of all background image files with allowed extensions
-    background_images = [f for f in os.listdir(background_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    background_images = [f for f in os.listdir(background_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg')) and int(f.split('_')[-1].split(".")[0])>=new_file_number]
+    
     if background_images:
         # Randomly select a background image from the list
         background_path = os.path.join(background_folder, random.choice(background_images))
@@ -260,7 +319,21 @@ def select_smoke_image(base_folder):
     smoke_folder = os.path.join(base_folder, "blender_images")
     # Get a list of all subfolders with smoke plume images
     smoke_subfolders = [f for f in os.listdir(smoke_folder) if f.lower().startswith('smokeplume_')]
+    # Uncomment to select specific smoke plume
+    #smoke_subfolders = [f for f in smoke_subfolders if f.lower().startswith('smokeplume_88')]
     if smoke_subfolders:
+        # Collect all smoke image paths from all subfolders
+        smoke_image_paths = []
+        for subfolder in smoke_subfolders:
+            subfolder_path = os.path.join(smoke_folder, subfolder)
+            smoke_images = [os.path.join(subfolder_path, image) for image in os.listdir(subfolder_path)]
+            smoke_image_paths.extend(smoke_images)
+        
+        if smoke_image_paths:
+            # Randomly select a smoke image path
+            smoke_image_path = random.choice(smoke_image_paths)
+            return smoke_image_path
+        """
         # Randomly select a subfolder for smoke images
         random_subfolder = random.choice(smoke_subfolders)
         smoke_images_folder = os.path.join(smoke_folder, random_subfolder)
@@ -270,7 +343,7 @@ def select_smoke_image(base_folder):
             # Randomly select a smoke image from the list
             smoke_image_path = os.path.join(smoke_images_folder, random.choice(smoke_images))
             return smoke_image_path
+        """
     print("No smoke images found.")
     return None
-
 
