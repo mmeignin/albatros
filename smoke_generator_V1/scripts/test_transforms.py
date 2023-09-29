@@ -48,7 +48,8 @@ if __name__ == "__main__":
         # Apply a specific composition of transformations based on the desired order
         title, transform_function = transformations[i % len(transformations)]
         composed_image_cv2 = transform_function(original_image_cv2)
-        cv2.imwrite(r"D:\mploi\Documents\Albatros\albatros\smoke_generator_V1\scripts\test_transform_2.png",composed_image_cv2)
+        
+        cv2.imwrite(os.path.join(script_dir,"test_transform_2.png"),composed_image_cv2)
         composed_image_cv2 = cv2.cvtColor(composed_image_cv2, cv2.COLOR_BGR2RGB)
         # Plot the composed image with title
         plt.subplot(num_rows, num_cols, i+1)

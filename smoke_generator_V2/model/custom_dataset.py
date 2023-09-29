@@ -4,6 +4,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from PIL import Image
 
+import matplotlib.pyplot as plt
 class CustomDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = root_dir
@@ -28,14 +29,14 @@ class CustomDataset(Dataset):
             mask = self.transform(mask)
         
         return {'image': image, 'mask': mask}
-
+"""
 # Define data transforms if needed
 data_transform = transforms.Compose([
-    transforms.Resize((256, 256)),  # Adjust the size as needed
+    transforms.Resize((512, 512)),  # Adjust the size as needed
     transforms.ToTensor(),
 ])
 
-root_dir= r'D:\mploi\Documents\Albatros\albatros\smoke_dataset_V1'
+root_dir= r'/content/drive/MyDrive/Data_Augmentation/smoke_generator_V2/smoke_dataset_V1'
 # Create the custom dataset
 dataset = CustomDataset(root_dir, transform=data_transform)
 
@@ -43,13 +44,11 @@ dataset = CustomDataset(root_dir, transform=data_transform)
 batch_size = 1
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-import matplotlib.pyplot as plt
 
 
 for batch_idx, batch in enumerate(dataloader):
     images = batch['image']
     masks = batch['mask']
-   
 
     
     for i in range(images.size(0)):
@@ -67,6 +66,5 @@ for batch_idx, batch in enumerate(dataloader):
         
         plt.tight_layout()
         plt.show()
-
-
-
+    break
+"""

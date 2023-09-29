@@ -296,7 +296,7 @@ def select_background_image(base_folder):
     """
     # Construct the path to the background images folder
     # file number to select background data
-    new_file_number = 807
+    new_file_number = 0
     background_folder = os.path.join(base_folder, "background_images")
     # Get a list of all background image files with allowed extensions
     background_images = [f for f in os.listdir(background_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg')) and int(f.split('_')[-1].split(".")[0])>=new_file_number]
