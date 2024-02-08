@@ -60,5 +60,5 @@ if __name__ == "__main__":
         #plt.show()
     
     plt.tight_layout()
-    plt.savefig(r"D:\mploi\Documents\Albatros\albatros\smoke_generator_V1\scripts\test_transform_2.png")
+    plt.savefig(r"smoke_generator_V1\scripts\test_transform_2.png")
     plt.show()

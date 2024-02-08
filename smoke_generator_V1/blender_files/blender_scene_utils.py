@@ -49,6 +49,7 @@ class Scene:
         camera.rotation_euler = [math.radians(angle) for angle in rotation]
         camera.data.type ='PERSP'
         camera.data.ortho_scale = scale
+
         self.objects.append(camera)
     
     def create_wind(self):
@@ -227,7 +228,7 @@ class Scene:
         # Find the node responsible for controlling smoke density (principled volume node)
         principled_volume = nodes[1]
         # Change the material color of the smoke
-        color_intensity = 1
+        color_intensity = random.uniform(0.5,1)
         principled_volume.inputs[0].default_value = (color_intensity, color_intensity, color_intensity, 1)
 
         # Create attribute and math nodes to control density
@@ -276,6 +277,13 @@ class Scene:
         # Set the starting and ending frame for the smoke animation
         bpy.context.scene.frame_start = 14
         bpy.context.scene.frame_end = 50
+
+    def camera_dof(self,camera, object):
+        """
+        Make camera focus on the object
+        """
+        camera.data.dof.use_dof = True
+        camera.data.dof.focus_object = object
         
     def delete_all_objects(self):
         """

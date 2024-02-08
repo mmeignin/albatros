@@ -1,4 +1,5 @@
 import wandb
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -10,90 +11,154 @@ import os
 from unet import UNET
 from custom_dataset import CustomDataset
 from sklearn.metrics import f1_score, jaccard_score
+import pickle
 
-# Check if GPU is available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(device)
 ##-------------------------------------------------------------------------------------------------------------------
 ##                         Training Loop for Segmentation Models
 ##-------------------------------------------------------------------------------------------------------------------
 
-#--Weight directory
-file_dir = os.path.dirname(os.path.abspath(__file__))
-weight_dir = os.path.join(file_dir, "../../weight")
-if not os.path.exists(weight_dir):
-    # If it doesn't exist, create it
-    os.makedirs(weight_dir)
-    print(f"{weight_dir} has been created")
-else :
-  print(f"model weights can be found at: {weight_dir}")
+
+# Check if GPU is available
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("-----------------------------------------------------------------------")
+print("Training Starting on device:" "gpu" if torch.cuda.is_available() else "cpu")
+print("-----------------------------------------------------------------------")
+
+
+
+# Define the root directory where your image and mask folders are located
+root_dir = r'/content/drive/MyDrive/smoke_generator_V2/smoke_dataset_V1'
+
 #-- training hyperparameters
-batch_size = 4
+seed = 142856
+batch_size = 16
 learning_rate = 0.001
-num_epochs = 100
+num_epochs = 200
 log_interval = 1
-save_interval = 1
+save_interval = 25
 criterion_name = 'BCEWithLogitsLoss'
 optimizer_name = 'Adam'
+weight_decay = 0
+model_name = "Unet"
+img_size = (256,256)
+dataset_name = root_dir.split("/")[-1]
+dataset_length = -1
 ##config for wandb logging
 config = {
+    'seed': seed,
     'batch_size': batch_size,
     'learning_rate': learning_rate,
     'num_epochs': num_epochs,
-    'criterion': criterion_name,  # Add the name of the criterion here
-    'optimizer': optimizer_name,  # Add the name of the optimizer here
+    'criterion': criterion_name,  
+    'optimizer': optimizer_name, 
+    'model_name' : model_name,
+    'weight_decay' : weight_decay,
+    'image_size': img_size,
+    'dataset_name': dataset_name,
+    'dataset_length': dataset_length,
 }
 
-wandb.login(key='f2835223dda80f88689f728711a4bce69f85b8e7')
+# Set a random seed for reproducibility
+torch.manual_seed(seed)
+np.random.seed(seed)
+
+wandb.login(key='124b22523d2147cafbedea2a2648c9c6a1450fcd')#confidential
 # Initialize wandb run with the updated config
 wandb.init(project='albatros_smoke_segmentation', config=config)
+run_name = wandb.run.name
 
-## Data Loading
+print("-----------------------------------------------------------------------")
+print("Config",config ) 
+print("-----------------------------------------------------------------------")
 
-# Define the root directory where your image and mask folders are located
-root_dir = r'/content/drive/MyDrive/Data_Augmentation/smoke_generator_V2/smoke_dataset_V1'
+#--Weight directory
+file_dir = os.path.dirname(os.path.abspath(__file__))
+weight_dir = os.path.join(file_dir, "../weight",run_name)
+if not os.path.exists(weight_dir):
+    # If it doesn't exist, create it
+    os.makedirs(weight_dir,exist_ok=True)
+    print("-----------------------------------------------------------------------")
+    print(f"{weight_dir} has been created")
+    print("-----------------------------------------------------------------------")
+else :
+  print("-----------------------------------------------------------------------")
+  print(f"Model weights can be found at: {weight_dir}")
+  print("-----------------------------------------------------------------------")
 
 # Define data transforms if needed
-data_transform = transforms.Compose([
-    transforms.Resize((512, 512)),  # Adjust the size as needed
+train_transform = transforms.Compose([
+    transforms.Resize(img_size),
+    transforms.ToTensor(),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+])
+
+val_test_transform = transforms.Compose([
+    transforms.Resize(img_size),
     transforms.ToTensor(),
 ])
 
-# Create the custom dataset
-dataset = CustomDataset(root_dir, transform=data_transform)
+dataset = CustomDataset(root_dir, transform=train_transform)
 
-## Data Split
-train_size = int(0.7 * len(dataset))
+
+indices = list(range(len(dataset)))
+#indices = indices[:-221]
+dataset = CustomDataset(root_dir, transform=train_transform,indices=indices)
+wandb.config.update({"dataset_length": len(indices)},allow_val_change=True)
+print(dataset.image_filenames)
+
+train_size = int(0.8 * len(dataset))
 val_size = int(0.1 * len(dataset))
 test_size = len(dataset) - train_size - val_size
-train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
+
+train_indices = indices[:train_size]
+val_indices = indices[train_size:train_size + val_size]
+test_indices = indices[train_size + val_size:]
+
+# Apply different transforms based on the split
+train_dataset = CustomDataset(root_dir, transform=train_transform, indices=train_indices)
+val_dataset = CustomDataset(root_dir, transform=val_test_transform, indices=val_indices)
+test_dataset = CustomDataset(root_dir, transform=val_test_transform, indices=test_indices)
+
+
+print("-----------------------------------------------------------------------")
+print(f"Dataset size:{len(dataset)}")
+print(f"Train size:{train_size}")
+print(f"Val size:{val_size}")
+print(f"Test size:{test_size}")
+print("-----------------------------------------------------------------------")
+
+
 
 # Create DataLoaders for the datasets
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=batch_size)
-test_loader = DataLoader(test_dataset, batch_size=batch_size)  # Test DataLoader
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,pin_memory=True)
+val_loader = DataLoader(val_dataset, batch_size=batch_size,shuffle=True,pin_memory=True)
+test_loader = DataLoader(test_dataset, batch_size=batch_size,pin_memory=True)  
 
 # Initialize the UNet model and move it to the GPU if available
 in_channels = 3  # Number of input channels (e.g., RGB image)
 out_channels = 1  # Number of output channels (e.g., binary segmentation)
-model = UNET(in_channels, out_channels).to(device)
-
-# Log the model architecture to wandb
-wandb.watch(model)
+if model_name == "Unet":
+  model = UNET(in_channels, out_channels).to(device)
 
 # Define loss function and optimizer
 if criterion_name == 'BCEWithLogitsLoss':
     criterion = nn.BCEWithLogitsLoss()  # Binary Cross-Entropy loss
 if optimizer_name == 'Adam':
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=weight_decay)
+
 
 # Training loop
 best_val_loss = float('inf')  # Initialize with a high value
+best_val_dice = 0 
+best_val_iou = 0
 best_model_weights_path = None
 
 for epoch in range(num_epochs):
     model.train()  # Set the model to training mode
     train_loss = 0.0
+    train_dice_scores = []
+    train_iou_scores = []
+
 
     for batch_idx, batch in enumerate(train_loader):
         images = batch['image'].to(device)
@@ -103,7 +168,7 @@ for epoch in range(num_epochs):
 
         # Forward pass
         outputs = model(images)
-
+  
         # Calculate the loss
         loss = criterion(outputs, masks)
 
@@ -113,9 +178,24 @@ for epoch in range(num_epochs):
 
         train_loss += loss.item()
 
+        train_outputs = (torch.sigmoid(outputs) > 0.5).float()
+        train_masks = (masks > 0.5).float()
+
+        # Calculate Dice Coefficient (F1 Score) on the GPU
+        dice = f1_score(train_masks.view(-1).cpu().numpy(), (torch.sigmoid(train_outputs) > 0.5).view(-1).cpu().numpy())
+        train_dice_scores.append(dice)
+
+        # Calculate Intersection over Union (IoU) on the GPU
+        iou = jaccard_score(train_masks.view(-1).cpu().numpy(), (torch.sigmoid(train_outputs) > 0.5).view(-1).cpu().numpy())
+        train_iou_scores.append(iou)
+
     avg_train_loss = train_loss / len(train_loader)
-    wandb.log({"Train Loss": avg_train_loss},step=epoch)
+    avg_train_dice = sum(train_dice_scores) / len(train_dice_scores)
+    avg_train_iou = sum(train_iou_scores) / len(train_iou_scores)
+
+    wandb.log({"Train Loss": avg_train_loss, "Train Dice Coefficient (F1 Score)": avg_train_dice, "Train IoU": avg_train_iou}, step=epoch)
     print(f'Training Loop of Epoch:{epoch+1}/{num_epochs} over average training loss : {avg_train_loss}')
+
     # Validation loop
     model.eval()  # Set the model to evaluation mode
     val_loss = 0.0
@@ -161,26 +241,84 @@ for epoch in range(num_epochs):
     sample_images = sample_images.permute(0, 2, 3, 1).cpu().numpy()
     sample_masks = sample_masks.permute(0, 2, 3, 1).cpu().numpy()
     sample_outputs = (sample_outputs > 0.5).permute(0, 2, 3, 1).cpu().numpy()
-    
-    # Log images to wandb
-    wandb.log({
-        "Sample Image": [wandb.Image(np.uint8(sample_images[0] * 255))],
-        "Sample Mask": [wandb.Image(np.uint8(sample_masks[0] * 255))],
-        "Sample Output": [wandb.Image(np.uint8(sample_outputs[0] * 255))]
-    },step=epoch)
+
+    # Plot the three images together
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    axes[0].imshow(sample_images[0])
+    axes[0].set_title('Val Input Image')
+    axes[1].imshow(sample_masks[0], cmap='gray')
+    axes[1].set_title('Val Mask Input')
+    axes[2].imshow(sample_outputs[0], cmap='gray')
+    axes[2].set_title('Val Mask Output')
+    plt.close()
+    # Log the combined plot to WandB
+    wandb.log({"Sample Images": [wandb.Image(fig)]}, step=epoch)
 
     # Print to terminal
-    print(f"Epoch [{epoch + 1}/{num_epochs}], Train Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}, Dice: {avg_dice_score:.4f}, IoU: {avg_iou_score:.4f}")
+    print(f" Validation Loss Epoch [{epoch + 1}/{num_epochs}], Train Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}, Dice: {avg_dice_score:.4f}, IoU: {avg_iou_score:.4f}")
 
     # Save model weights
     if (epoch + 1) % save_interval == 0:
         model_weights_path = os.path.join(weight_dir, f"model_epoch_{epoch + 1}.pt")
         torch.save(model.state_dict(), model_weights_path)
-
-    # Save the model if it has the best validation loss so far
+    # Save one model weights per metrics
     if avg_val_loss < best_val_loss:
         best_val_loss = avg_val_loss
-        best_model_weights_path = os.path.join(weight_dir, "best_model.pt")
+        best_model_weights_path = os.path.join(weight_dir, "best_model_val_loss.pt")
+        torch.save(model.state_dict(), best_model_weights_path)
+    if avg_dice_score > best_val_dice:
+        best_val_dice = avg_dice_score
+        best_model_weights_path = os.path.join(weight_dir, "best_model_val_dice.pt")
+        torch.save(model.state_dict(), best_model_weights_path)
+    if avg_iou_score > best_val_iou:
+        best_val_iou = avg_iou_score        
+        best_model_weights_path = os.path.join(weight_dir, "best_model_val_iou.pt")
         torch.save(model.state_dict(), best_model_weights_path)
 
+print("-----------------------------------------------------------------------")
 print("Training complete!")
+print("-----------------------------------------------------------------------")
+
+# Testing loop
+model.eval()  # Set the model to evaluation mode
+test_loss = 0.0
+test_dice_scores = []
+test_iou_scores = []
+
+with torch.no_grad():
+    for test_batch in test_loader:
+        test_images = test_batch['image'].to(device)
+        test_masks = test_batch['mask'].to(device)
+
+        # Forward pass
+        test_outputs = model(test_images)
+
+        # Apply sigmoid activation and threshold to obtain binary predictions on the GPU
+        test_outputs = (torch.sigmoid(test_outputs) > 0.5).float()
+        test_masks = (test_masks > 0.5).float()
+
+        # Calculate the test loss
+        test_loss += criterion(test_outputs, test_masks).item()
+
+        # Calculate Dice Coefficient (F1 Score) on the GPU
+        dice = f1_score(test_masks.view(-1).cpu().numpy(), test_outputs.view(-1).cpu().numpy())
+        test_dice_scores.append(dice)
+
+        # Calculate Intersection over Union (IoU) on the GPU
+        iou = jaccard_score(test_masks.view(-1).cpu().numpy(), test_outputs.view(-1).cpu().numpy())
+        test_iou_scores.append(iou)
+
+avg_test_loss = test_loss / len(test_loader)
+avg_test_dice = sum(test_dice_scores) / len(test_dice_scores)
+avg_test_iou = sum(test_iou_scores) / len(test_iou_scores)
+
+# Log metrics to WandB for the test set
+wandb.log({"Test Loss": avg_test_loss, "Test Dice Coefficient (F1 Score)": avg_test_dice, "Test IoU": avg_test_iou})
+
+print("-----------------------------------------------------------------------")
+print("Testing Loop")
+print(f"Test Loss: {avg_test_loss:.4f}")
+print(f"Test Dice: {avg_test_dice:.4f}")
+print(f"Test IoU: {avg_test_iou:.4f}")
+print("-----------------------------------------------------------------------")
+

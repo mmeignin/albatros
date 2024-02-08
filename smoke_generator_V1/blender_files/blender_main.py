@@ -11,7 +11,7 @@ from blender_scene_utils import Scene
 ##-----------------------------------------------------------------------------------------
 ##                        Blender Main script for Smoke Simulation
 ##-----------------------------------------------------------------------------------------
-# Modify to your output path, should be ABSOLUTE
+# Modify to your output path, should be ABSOLUTE path
 OUPUT_PATH = r"D:\mploi\Documents\Albatros\albatros\smoke_generator_V1\blender_images"
 # Create the scene instance
 bpy.ops.file.make_paths_relative()

@@ -295,7 +295,7 @@ def add_pixelisation(image):
     Returns:
         pixelized_image (array): Image with pixelization.
     """
-    pixel_size = random.randint(3,7)
+    pixel_size = random.randint(7,15)
     # Get the image dimensions
     height, width = image.shape[:2]
 
@@ -343,7 +343,7 @@ def add_monochromatic_noise(image):
         noisy_image (array): Image with added monochromatic noise.
     """
     mean = 0
-    std_dev = 0.4
+    std_dev = 0.7
     # Generate a random color for the noise (R, G, B channels)
     noise_color = np.random.randint(0, 256, 3)
 

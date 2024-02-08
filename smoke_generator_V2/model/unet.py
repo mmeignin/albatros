@@ -63,14 +63,13 @@ class UNET(nn.Module):
 
             concat_skip = torch.cat((skip_connection, x), dim=1)
             x = self.ups[idx+1](concat_skip)
-        x = torch.sigmoid(self.final_conv(x))
-        return x
-        
+
+        return self.final_conv(x)
+
 def test():
     x = torch.randn((3, 1, 512, 512))
     model = UNET(in_channels=1, out_channels=1)
     preds = model(x)
-    print(preds.shape)
     assert preds.shape == x.shape
 
 if __name__ == "__main__":

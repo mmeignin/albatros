@@ -1,22 +1,18 @@
 #Custom gitignore
-
-#background images for composition
-smoke_generator_V1/background_images/
-#smoke images for composition
-smoke_generator_V1/blender_images/
-#Final dataset
-smoke_generator_V1/smoke_dataset_V1/
 ## Python environment
 smoke_generator_V1/smoke_generator_env
 ## Harmonization scripts and model weights
 smoke_generator_V1/scripts/harmonization_scripts
 #smoke_generator_V1/blender_files/random_smokeplume.blend
 smoke_generator_V1/blender_files/random_smokeplume/*
-smoke_generator_V1/blender_files/blender_file.blend
 # Final Dataset
-smoke_dataset_V1/images/*
-smoke_dataset_V1/masks/*
 smoke_generator_V2/weight
+smoke_generator_V1/scripts/brightness_EDA.py
+smoke_generator_V1/scripts/bb_EDA.py
+smoke_generator_V1/scripts/mask_EDA.py
+smoke_generator_V1/scripts/sky_EDA.py
+smoke_generator_V2/real_images
+smoke_generator_V2/scripts
 # file extensions
 *.pth
 *.bin

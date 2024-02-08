@@ -16,8 +16,8 @@ class ImageApp:
         self.image_width = 700
         self.image_height = 700
         
-        self.base_folder = 'D:/mploi/Documents/Albatros/albatros/smoke_generator_V1'
-        self.output_folder = 'D:/mploi/Documents/Albatros/albatros/smoke_dataset_V1'
+        self.base_folder = 'smoke_generator_V1'
+        self.output_folder = 'smoke_dataset_V1'
         self.images_output = os.path.join(self.output_folder, 'images/')
         self.mask_output = os.path.join(self.output_folder, 'masks/')
 
@@ -65,7 +65,7 @@ class ImageApp:
             self.label1.grid(row=0, column=0, padx=10, pady=10)
 
     def perform_harmonization(self):
-        model_path = r'D:\mploi\Documents\Albatros\albatros\smoke_generator_V1\scripts\harmonization_scripts\model_path\rascv2.pth.tar'
+        model_path = r'smoke_generator_V1\scripts\harmonization_scripts\model_path\rascv2.pth.tar'
         if self.image1 is None or self.mask is None:
             return
         

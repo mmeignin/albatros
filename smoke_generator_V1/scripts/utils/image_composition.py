@@ -229,7 +229,7 @@ def composite_smoke(background_path, smoke_image_path,rescaling_factor=None,whit
     if rescaling_factor == None :
         rescaling_factor = random.uniform(0.12,0.33)
     if brightness_factor == None:
-        brightness_factor = random.uniform(1.1,2)
+        brightness_factor = random.uniform(1.1,1.2)
     alpha = random.uniform(white_mask[0],white_mask[1])
     #print(rescaling_factor,brightness_factor)
     
@@ -273,7 +273,7 @@ def composite_smoke(background_path, smoke_image_path,rescaling_factor=None,whit
             composite = Image.alpha_composite(background, transparent_background)
             # Convert to RGB to ensure code stability
             composite = composite.convert("RGB")
-            composite = add_white_mask(composite,alpha=alpha)
+            #composite = add_white_mask(composite,alpha=alpha)
             return composite,binary_mask
         else:
             print("No bounding boxes found in the smoke image.")
@@ -296,10 +296,11 @@ def select_background_image(base_folder):
     """
     # Construct the path to the background images folder
     # file number to select background data
-    new_file_number = 0
     background_folder = os.path.join(base_folder, "background_images")
+    background_images = [f for f in os.listdir(background_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg')) and int(f.split('_')[-1].split(".")[0])>=0]
+    new_file_number = 960
     # Get a list of all background image files with allowed extensions
-    background_images = [f for f in os.listdir(background_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg')) and int(f.split('_')[-1].split(".")[0])>=new_file_number]
+    #background_images = [f for f in os.listdir(background_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg')) and int(f.split('_')[-1].split(".")[0])==new_file_number]
     
     if background_images:
         # Randomly select a background image from the list
@@ -320,7 +321,8 @@ def select_smoke_image(base_folder):
     # Get a list of all subfolders with smoke plume images
     smoke_subfolders = [f for f in os.listdir(smoke_folder) if f.lower().startswith('smokeplume_')]
     # Uncomment to select specific smoke plume
-    #smoke_subfolders = [f for f in smoke_subfolders if f.lower().startswith('smokeplume_88')]
+    # smoke_plume_numbeer = "90"
+    #smoke_subfolders = [f for f in smoke_subfolders if f.lower() == 'smokeplume_'+smoke_plume_numbeer]
     if smoke_subfolders:
         # Collect all smoke image paths from all subfolders
         smoke_image_paths = []

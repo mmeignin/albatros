@@ -204,7 +204,7 @@ def display_center_and_max_distance(image, center_x, center_y, max_distance):
 
 
 if __name__ == '__main__':
-    for j in range(27,125):
+    for j in range(0,100):
         input_image_relative_path = rf"..\blender_images\smokeplume_{j}"
         script_dir = os.path.dirname(os.path.abspath(__file__))
         smoke_folder = os.path.join(script_dir, input_image_relative_path)
